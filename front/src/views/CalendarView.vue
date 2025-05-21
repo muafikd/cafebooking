@@ -1,8 +1,8 @@
 <template>
     <div class="calendar-container">
-        <div class="page-header">
+        <!-- <div class="page-header">
             <h2 class="page-title">Календарь событий</h2>
-        </div>
+        </div> -->
 
         <div v-if="loading" class="loading">
             <div class="spinner"></div>
@@ -13,7 +13,7 @@
         <div v-else>
             <div class="calendar-header">
                 <h2>Календарь бронирований</h2>
-                <div class="calendar-controls">
+                <!-- <div class="calendar-controls">
                     <button @click="prevMonth" class="btn btn-secondary">
                         <i class="fas fa-chevron-left"></i>
                     </button>
@@ -21,17 +21,27 @@
                     <button @click="nextMonth" class="btn btn-secondary">
                         <i class="fas fa-chevron-right"></i>
                     </button>
-                </div>
+                </div> -->
             </div>
 
             <div class="calendar-wrapper">
                 <Calendar
                     v-model="selectedDate"
-                    :attributes="calendarAttributes"
                     @dayclick="onDayClick"
                     is-expanded
                     trim-weeks
                     :first-day-of-week="1"
+                    :masks="{ weekdays: 'WWW' }"
+                    :attributes="[
+                        {
+                            highlight: {
+                                color: 'blue',
+                                fillMode: 'solid',
+                                contentClass: 'has-events'
+                            },
+                            dates: calendarAttributes.map(attr => attr.dates)
+                        }
+                    ]"
                 />
             </div>
 
@@ -96,12 +106,13 @@ export default {
         calendarAttributes() {
             return this.bookings.map(booking => ({
                 key: booking.id,
-                dot: {
-                    color: booking.status === 'confirmed' ? 'green' : 'orange'
-                },
+                dot: false,
                 dates: new Date(booking.start_time),
                 popover: {
                     label: `${booking.client_name} - ${this.formatTime(booking.start_time)}`
+                },
+                customData: {
+                    status: booking.status
                 }
             }));
         }
@@ -304,16 +315,30 @@ export default {
     position: relative;
 }
 
-.vc-day.has-events::after {
-    content: '';
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 6px;
-    height: 6px;
+.vc-day.has-events .vc-day-content {
+    background-color: #0ea5e9;
+    color: white;
     border-radius: 50%;
-    background-color: var(--vc-accent-500);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.vc-day.has-events[data-status="confirmed"] .vc-day-content {
+    background-color: #28a745;
+}
+
+.vc-day.has-events[data-status="pending"] .vc-day-content {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.vc-day.has-events[data-status="cancelled"] .vc-day-content {
+    background-color: #dc3545;
 }
 
 .calendar-header {
@@ -480,5 +505,80 @@ export default {
     color: #333;
     font-size: 24px;
     margin: 0;
+}
+
+/* Мобильные стили */
+@media (max-width: 768px) {
+    .calendar-container {
+        padding: 10px;
+    }
+
+    .calendar-wrapper {
+        padding: 10px;
+    }
+
+    .vc-weekday {
+        font-size: 0.9em;
+        padding: 10px 0;
+        width: 40px;
+        margin: 2px;
+    }
+
+    .vc-day {
+        padding: 8px 0;
+        height: 40px;
+        width: 40px;
+        margin: 2px;
+    }
+
+    .vc-day-content {
+        font-size: 1em;
+    }
+
+    .vc-day.has-events .vc-day-content {
+        width: 28px;
+        height: 28px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 15px;
+        margin: 10px;
+    }
+
+    .booking-item {
+        padding: 10px;
+    }
+
+    .booking-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .booking-status {
+        align-self: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .vc-weekday {
+        font-size: 0.8em;
+        width: 35px;
+    }
+
+    .vc-day {
+        width: 35px;
+        height: 35px;
+    }
+
+    .vc-day.has-events .vc-day-content {
+        width: 24px;
+        height: 24px;
+    }
+
+    .booking-details p {
+        font-size: 0.9em;
+    }
 }
 </style> 

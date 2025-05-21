@@ -148,12 +148,12 @@ EMAIL_HOST_PASSWORD = 'kcifdvbeqerepbml'
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Устанавливаем срок жизни токена на 30 минут
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     # Устанавливаем срок жизни refresh токена (если понадобится)
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=365),  # Устанавливаем срок жизни токена на 1 год
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=365),  # Устанавливаем срок жизни refresh токена на 1 год
     'ROTATE_REFRESH_TOKENS': False,  # Не будем использовать refresh токены
     'BLACKLIST_AFTER_ROTATION': False,  # Не будем блокировать токены после их ротации
     'ALGORITHM': 'HS256',  # Алгоритм для подписи токенов
     'SIGNING_KEY': SECRET_KEY,  # Ключ для подписи токенов
-    'VERIFYING_KEY': None,  # Не будем проверять ключ (если не используем публичный ключ)
-    'BLACKLIST_AFTER_ROTATION': True, 
+    'VERIFYING_KEY': None,  # Не будем проверять ключ
+    'BLACKLIST_AFTER_ROTATION': False,  # Отключаем черный список токенов
 }

@@ -4,7 +4,6 @@
             <h2 class="page-title">Управление пользователями</h2>
             <button class="create-button" @click="showForm = true">
                 <i class="fas fa-user-plus"></i>
-                Добавить пользователя
             </button>
         </div>
 
@@ -81,31 +80,92 @@
         </div>
 
         <!-- Список пользователей -->
-        <div class="users-grid">
-            <div v-for="user in users" :key="user.id" class="user-card">
-                <div class="user-header">
-                    <div class="user-info">
-                        <h3>{{ user.username }}</h3>
-                        <span :class="['role-badge', user.role]">
-                            {{ user.role === 'superadmin' ? 'Супер-администратор' : 
-                               user.role === 'admin' ? 'Администратор кафе' : 'Ассистент' }}
-                        </span>
-                    </div>
-                    <div class="user-actions">
-                        <button class="action-button edit" @click="editUser(user)">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-button delete" @click="deleteUser(user.id)">
-                            <i class="fas fa-trash"></i>
-                        </button>
+        <div class="users-container">
+            <!-- Супер-администраторы -->
+            <div class="user-group" v-if="superAdmins.length">
+                <h3 class="group-title">Супер-администраторы</h3>
+                <div class="users-grid">
+                    <div v-for="user in superAdmins" :key="user.id" class="user-card">
+                        <div class="user-header">
+                            <div class="user-info">
+                                <h3>{{ user.username }}</h3>
+                                <span :class="['role-badge', user.role]">
+                                    Супер-администратор
+                                </span>
+                            </div>
+                            <div class="user-actions">
+                                <button class="action-button edit" @click="editUser(user)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-button delete" @click="deleteUser(user.id)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="user-details">
+                            <p><i class="fas fa-envelope"></i> {{ user.email }}</p>
+                            <p><i class="fas fa-clock"></i> Создан: {{ formatDate(user.date_joined) }}</p>
+                        </div>
                     </div>
                 </div>
-                <div class="user-details">
-                    <p><i class="fas fa-envelope"></i> {{ user.email }}</p>
-                    <p v-if="user.cafe && user.role !== 'superadmin'">
-                        <i class="fas fa-store"></i> {{ user.cafe.name }}
-                    </p>
-                    <p><i class="fas fa-clock"></i> Создан: {{ formatDate(user.date_joined) }}</p>
+            </div>
+
+            <!-- Группировка по кафе -->
+            <div v-for="cafe in cafes" :key="cafe.id" class="user-group">
+                <div class="group-header" @click="toggleCafeGroup(cafe.id)">
+                    <h3 class="group-title">{{ cafe.name }}</h3>
+                    <button class="toggle-button" :class="{ 'collapsed': !isCafeExpanded(cafe.id) }">
+                        <i class="fas" :class="isCafeExpanded(cafe.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </button>
+                </div>
+                <div class="users-grid" v-show="isCafeExpanded(cafe.id)">
+                    <!-- Администраторы кафе -->
+                    <div v-for="user in getCafeUsers(cafe.id, 'admin')" :key="user.id" class="user-card">
+                        <div class="user-header">
+                            <div class="user-info">
+                                <h3>{{ user.username }}</h3>
+                                <span :class="['role-badge', user.role]">
+                                    Администратор кафе
+                                </span>
+                            </div>
+                            <div class="user-actions">
+                                <button class="action-button edit" @click="editUser(user)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-button delete" @click="deleteUser(user.id)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="user-details">
+                            <p><i class="fas fa-envelope"></i> {{ user.email }}</p>
+                            <p><i class="fas fa-clock"></i> Создан: {{ formatDate(user.date_joined) }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Ассистенты -->
+                    <div v-for="user in getCafeUsers(cafe.id, 'assistant')" :key="user.id" class="user-card">
+                        <div class="user-header">
+                            <div class="user-info">
+                                <h3>{{ user.username }}</h3>
+                                <span :class="['role-badge', user.role]">
+                                    Ассистент
+                                </span>
+                            </div>
+                            <div class="user-actions">
+                                <button class="action-button edit" @click="editUser(user)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-button delete" @click="deleteUser(user.id)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="user-details">
+                            <p><i class="fas fa-envelope"></i> {{ user.email }}</p>
+                            <p><i class="fas fa-clock"></i> Создан: {{ formatDate(user.date_joined) }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,6 +184,7 @@ export default {
         const showForm = ref(false)
         const loading = ref(false)
         const error = ref(null)
+        const expandedCafes = ref(new Set()) // Для хранения состояния развернутых групп
         const form = ref({
             id: null,
             username: '',
@@ -133,6 +194,18 @@ export default {
             cafe: ''
         })
 
+        const toggleCafeGroup = (cafeId) => {
+            if (expandedCafes.value.has(cafeId)) {
+                expandedCafes.value.delete(cafeId)
+            } else {
+                expandedCafes.value.add(cafeId)
+            }
+        }
+
+        const isCafeExpanded = (cafeId) => {
+            return expandedCafes.value.has(cafeId)
+        }
+
         const fetchUsers = async () => {
             try {
                 const token = localStorage.getItem('access')
@@ -140,6 +213,8 @@ export default {
                     headers: { Authorization: `Bearer ${token}` }
                 })
                 users.value = response.data
+                // Фильтруем супер-администраторов
+                superAdmins.value = response.data.filter(user => user.role === 'superadmin')
             } catch (err) {
                 error.value = 'Ошибка загрузки пользователей'
                 console.error(err)
@@ -265,6 +340,12 @@ export default {
             return new Date(date).toLocaleDateString('ru-RU')
         }
 
+        const getCafeUsers = (cafeId, role) => {
+            return users.value.filter(user => user.cafe && user.cafe.id === cafeId && user.role === role)
+        }
+
+        const superAdmins = ref([])
+
         onMounted(() => {
             fetchUsers()
             fetchCafes()
@@ -282,7 +363,11 @@ export default {
             editUser,
             closeForm,
             getCafeName,
-            formatDate
+            formatDate,
+            getCafeUsers,
+            superAdmins,
+            toggleCafeGroup,
+            isCafeExpanded
         }
     }
 }
@@ -295,29 +380,19 @@ export default {
     padding: 20px;
 }
 
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.user-group {
     margin-bottom: 30px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
 }
 
-.create-button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-    transition: background-color 0.2s;
-}
-
-.create-button:hover {
-    background-color: #388E3C;
+.group-title {
+    color: #333;
+    font-size: 20px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
 }
 
 .users-grid {
@@ -331,6 +406,12 @@ export default {
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.user-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .user-header {
@@ -416,6 +497,110 @@ export default {
     color: #4CAF50;
 }
 
+/* Мобильные стили */
+@media (max-width: 768px) {
+    .users-container {
+        padding: 10px;
+    }
+
+    .user-group {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .group-title {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+
+    .users-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .user-card {
+        padding: 15px;
+    }
+
+    .user-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .user-info h3 {
+        font-size: 16px;
+    }
+
+    .user-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .action-button {
+        padding: 6px;
+    }
+
+    .user-details p {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-group {
+        padding: 12px;
+    }
+
+    .group-title {
+        font-size: 16px;
+    }
+
+    .user-card {
+        padding: 12px;
+    }
+
+    .user-info h3 {
+        font-size: 15px;
+    }
+
+    .role-badge {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+
+    .user-details p {
+        font-size: 13px;
+    }
+
+    .action-button {
+        padding: 5px;
+    }
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.create-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.create-button:hover {
+    background-color: #388E3C;
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -498,5 +683,71 @@ export default {
     margin-top: 10px;
     background-color: #ffebee;
     border-radius: 4px;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.group-header:hover {
+    background-color: #e9ecef;
+}
+
+.toggle-button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggle-button:hover {
+    background-color: #dee2e6;
+    color: #333;
+}
+
+.toggle-button i {
+    transition: transform 0.2s;
+}
+
+.toggle-button.collapsed i {
+    transform: rotate(-90deg);
+}
+
+.users-grid {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+/* Мобильные стили */
+@media (max-width: 768px) {
+    .group-header {
+        padding: 8px;
+    }
+
+    .toggle-button {
+        padding: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .group-header {
+        padding: 6px;
+    }
+
+    .toggle-button {
+        padding: 5px;
+    }
 }
 </style> 

@@ -1,7 +1,7 @@
 <template>
     <div class="bookings-container">
         <div class="page-header">
-            <h2 class="page-title">Заявки</h2>
+            <!-- <h2 class="page-title">Заявки</h2> -->
             <div class="header-actions">
                 <button class="create-button" @click="showForm = true">
                     <i class="fas fa-plus"></i>
@@ -101,7 +101,7 @@
             </div>
         </div>
 
-        <h2 class="page-title">Ваши заявки</h2>
+        <h2 class="page-title">Созданные заявки</h2>
 
         <div v-if="loading" class="loading">Загрузка...</div>
         <div v-if="error" class="error">{{ error }}</div>
@@ -226,6 +226,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- Модальное окно подтверждения удаления -->
+        <div v-if="showDeleteModal" class="modal-overlay">
+            <div class="modal-content confirmation-modal">
+                <div class="modal-header">
+                    <h3>Подтверждение удаления заявки #{{ bookingToDelete }}</h3>
+                    <button class="close-button" @click="cancelDelete">&times;</button>
+                </div>
+
+                <div class="confirmation-content">
+                    <p class="confirmation-description">Вы уверены, что хотите удалить эту заявку?</p>
+                    <div class="confirmation-actions">
+                        <button class="action-button confirm" @click="confirmDelete">
+                            <i class="fas fa-check"></i>
+                            Подтвердить
+                        </button>
+                        <button class="action-button cancel" @click="cancelDelete">
+                            <i class="fas fa-times"></i>
+                            Отмена
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -276,6 +300,8 @@ export default {
             confirmationCodeSent: false,
             loadingVerify: false,
             isSuperAdmin: false,
+            showDeleteModal: false,
+            bookingToDelete: null,
         }
     },
     async created() {
@@ -296,7 +322,16 @@ export default {
                         Authorization: `Bearer ${token}`,
                     },
                 })
-                this.bookings = response.data
+                // Сортируем заявки: сначала неподтвержденные, затем подтвержденные
+                this.bookings = response.data.sort((a, b) => {
+                    if (a.event_status === 'not_confirmed' && b.event_status === 'confirmed') {
+                        return -1;
+                    }
+                    if (a.event_status === 'confirmed' && b.event_status === 'not_confirmed') {
+                        return 1;
+                    }
+                    return 0;
+                });
             } catch (err) {
                 this.error = err.response?.data?.detail || err.message || 'Ошибка загрузки'
             } finally {
@@ -330,19 +365,28 @@ export default {
             }
         },
         async deleteBooking(bookingId) {
-            if (!confirm('Вы уверены, что хотите удалить эту заявку?')) return;
+            this.bookingToDelete = bookingId;
+            this.showDeleteModal = true;
+        },
+        async confirmDelete() {
             try {
                 const token = localStorage.getItem('access');
-                await axios.delete(`http://127.0.0.1:8000/api/delete/${bookingId}/`, {
+                await axios.delete(`http://127.0.0.1:8000/api/delete/${this.bookingToDelete}/`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                this.bookings = this.bookings.filter(b => b.id !== bookingId);
+                this.bookings = this.bookings.filter(b => b.id !== this.bookingToDelete);
+                this.showDeleteModal = false;
+                this.bookingToDelete = null;
             } catch (error) {
-                alert('Ошибка при удалении заявки.');
+                this.error = 'Ошибка при удалении заявки.';
                 console.error(error);
             }
+        },
+        cancelDelete() {
+            this.showDeleteModal = false;
+            this.bookingToDelete = null;
         },
         async confirmBookingCode() {
             this.loadingVerify = true;
@@ -693,6 +737,11 @@ export default {
     gap: 8px;
 }
 
+.booking-main-info p i {
+    width: 20px;
+    text-align: center;
+}
+
 .booking-details {
     border-top: 1px solid #eee;
     padding-top: 15px;
@@ -708,6 +757,7 @@ export default {
     display: flex;
     gap: 10px;
     margin-top: 15px;
+    flex-wrap: wrap;
 }
 
 .action-button {
@@ -716,6 +766,12 @@ export default {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 100px;
 }
 
 .action-button.expand {
@@ -795,7 +851,8 @@ export default {
 }
 
 .confirmation-modal {
-    max-width: 500px;
+    max-width: 400px;
+    text-align: center;
 }
 
 .confirmation-content {
@@ -811,7 +868,7 @@ export default {
 .confirmation-description {
     font-size: 16px;
     color: #333;
-    margin-bottom: 15px;
+    margin: 20px 0;
 }
 
 .confirmation-methods {
@@ -862,7 +919,8 @@ export default {
 .confirmation-actions {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
+    justify-content: center;
+    margin-top: 20px;
 }
 
 .action-button.cancel {
@@ -969,5 +1027,145 @@ export default {
 
 .admin-button i {
     font-size: 18px;
+}
+
+/* Мобильные стили */
+@media (max-width: 768px) {
+    .bookings-container {
+        padding: 10px;
+    }
+
+    .bookings-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .booking-card {
+        padding: 15px;
+    }
+
+    .booking-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .booking-title h3 {
+        font-size: 20px;
+    }
+
+    .status-badge {
+        align-self: flex-start;
+    }
+
+    .booking-main-info p {
+        font-size: 14px;
+    }
+
+    .booking-main-info p i {
+        width: 16px;
+    }
+
+    .booking-details {
+        padding-top: 10px;
+        margin-top: 10px;
+    }
+
+    .details-section p,
+    .price-section p {
+        font-size: 14px;
+        margin: 5px 0;
+    }
+
+    .booking-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .action-button {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .create-button {
+        width: 50px;
+        height: 50px;
+        bottom: 20px;
+        right: 20px;
+        font-size: 20px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 15px;
+        margin: 10px;
+    }
+
+    .booking-form {
+        gap: 10px;
+    }
+
+    .booking-form label {
+        font-size: 14px;
+    }
+
+    .booking-form input,
+    .booking-form select,
+    .booking-form textarea {
+        padding: 10px;
+        font-size: 14px;
+    }
+
+    .confirmation-methods {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .method-option {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .confirmation-actions {
+        flex-direction: column;
+    }
+
+    .confirmation-actions .action-button {
+        width: 100%;
+    }
+
+    .confirmation-modal {
+        width: 90%;
+        max-width: 350px;
+    }
+
+    .confirmation-description {
+        font-size: 15px;
+        margin: 15px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .booking-card {
+        padding: 12px;
+    }
+
+    .booking-title h3 {
+        font-size: 18px;
+    }
+
+    .booking-main-info p {
+        font-size: 13px;
+    }
+
+    .action-button {
+        font-size: 13px;
+    }
+
+    .create-button {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+    }
 }
 </style>

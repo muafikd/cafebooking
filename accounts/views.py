@@ -65,7 +65,7 @@ class LogoutView(APIView):
     """
     Представление для разлогинивания пользователя (удаление токена).
     """
-    permission_classes = [IsAuthenticated]  # Только аутентифицированные пользователи могут выйти
+    permission_classes = [AllowAny]  # Только аутентифицированные пользователи могут выйти
 
     def post(self, request, *args, **kwargs):
         try:
@@ -162,12 +162,20 @@ class SendConfirmationCodeView(APIView):
             
             try:
                 send_mail(
-                    subject='Код подтверждения брони',
-                    message=f"Ваш код подтверждения: {code}",
-                    from_email='noreply@example.com',  # укажи свой email
-                    recipient_list=[booking.client_email],
-                    fail_silently=False,
-                )
+                    subject='Броньды растау коды',
+                    message=(
+                        f"*Сәлеметсіз бе, {booking.client_name}*\n"
+                        f"Мейрамхана -  {booking.cafe.name}. өтетін іс-шара - {booking.event_name},  "
+                        f"күні - {booking.date}, басталу уақыты - {booking.time}, адам саны - {booking.number_of_people}, "
+                        f"бір адамға бағасы - {booking.price_per_visitor} ₸, алдын ала төленген қаражат - {booking.prepayment} ₸,\n"
+                        f"Жоғарыдағы ақпаратпен мұқият танысып шығыңыз.\n\n"
+                        f"Администраторға көрсетіңіз - {code}"
+                    ),
+                from_email='muafikd@gmail.com',
+                recipient_list=[booking.client_email],
+                fail_silently=False,
+)
+
             except Exception as e:
                 return Response({'error': f'Ошибка при отправке email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -183,9 +191,9 @@ class SendConfirmationCodeView(APIView):
                 "confirmation_code": code,
                 "organizationId": booking.cafe.organization_id,
                 "organizationName": booking.cafe.name,
-                "prepayment": booking.prepayment,
-                "number_of_people": booking.number_of_people,
-                "price_per_visitor": booking.price_per_visitor
+                "prepayment": str(booking.prepayment),
+                "number_of_people": str(booking.number_of_people),
+                "price_per_visitor": str(booking.price_per_visitor)
             }
 
             try:

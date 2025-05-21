@@ -4,26 +4,34 @@
       <i class="fas fa-coffee"></i>
       <span>Система управления кафе</span>
     </div>
-    <div class="nav-links">
-      <router-link to="/bookings" class="nav-link">
+    
+    <!-- Бургер меню для мобильной версии -->
+    <button class="burger-menu" @click="toggleMenu" :class="{ 'active': isMenuOpen }">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <div class="nav-links" :class="{ 'active': isMenuOpen }">
+      <router-link to="/bookings" class="nav-link" @click="closeMenu">
         <i class="fas fa-list"></i>
-        Заявки
+        <span>Заявки</span>
       </router-link>
-      <router-link to="/calendar" class="nav-link">
+      <router-link to="/calendar" class="nav-link" @click="closeMenu">
         <i class="fas fa-calendar"></i>
-        Календарь
+        <span>Календарь</span>
       </router-link>
-      <router-link v-if="isSuperAdmin" to="/cafes" class="nav-link">
+      <router-link v-if="isSuperAdmin" to="/cafes" class="nav-link" @click="closeMenu">
         <i class="fas fa-store"></i>
-        Кафе
+        <span>Кафе</span>
       </router-link>
-      <router-link v-if="isSuperAdmin" to="/users" class="nav-link">
+      <router-link v-if="isSuperAdmin" to="/users" class="nav-link" @click="closeMenu">
         <i class="fas fa-users"></i>
-        Пользователи
+        <span>Пользователи</span>
       </router-link>
       <button @click="logout" class="nav-link logout">
         <i class="fas fa-sign-out-alt"></i>
-        Выход
+        <span>Выход</span>
       </button>
     </div>
   </nav>
@@ -39,6 +47,15 @@ export default {
   setup() {
     const router = useRouter()
     const isSuperAdmin = ref(false)
+    const isMenuOpen = ref(false)
+
+    const toggleMenu = () => {
+      isMenuOpen.value = !isMenuOpen.value
+    }
+
+    const closeMenu = () => {
+      isMenuOpen.value = false
+    }
 
     const checkUserRole = async () => {
       try {
@@ -77,7 +94,10 @@ export default {
 
     return {
       isSuperAdmin,
-      logout
+      logout,
+      isMenuOpen,
+      toggleMenu,
+      closeMenu
     }
   }
 }
@@ -91,6 +111,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
 }
 
 .nav-brand {
@@ -152,25 +173,80 @@ export default {
   background-color: rgba(255, 107, 107, 0.1);
 }
 
+.burger-menu {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 21px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1000;
+}
+
+.burger-menu span {
+  width: 100%;
+  height: 3px;
+  background-color: white;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.burger-menu.active span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+
+.burger-menu.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.burger-menu.active span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
+
 @media (max-width: 768px) {
-  .navbar {
-    padding: 0.8rem 1rem;
+  .burger-menu {
+    display: flex;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    background: #2c3e50;
+    flex-direction: column;
+    padding: 80px 20px 20px;
+    transition: right 0.3s ease;
+    z-index: 999;
+  }
+
+  .nav-links.active {
+    right: 0;
+  }
+
+  .nav-link {
+    width: 100%;
+    padding: 1rem;
+    justify-content: flex-start;
+  }
+
+  .nav-link i {
+    width: 24px;
   }
 
   .nav-brand span {
     display: none;
   }
+}
 
-  .nav-link span {
-    display: none;
-  }
-
-  .nav-link {
-    padding: 0.6rem;
-  }
-
-  .nav-links {
-    gap: 0.5rem;
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.8rem 1rem;
   }
 }
 </style> 

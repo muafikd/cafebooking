@@ -4,7 +4,6 @@
             <h1>Управление кафе</h1>
             <button class="add-button" @click="openForm">
                 <i class="fas fa-plus"></i>
-                Добавить кафе
             </button>
         </div>
 
