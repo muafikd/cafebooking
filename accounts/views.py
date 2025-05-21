@@ -182,7 +182,10 @@ class SendConfirmationCodeView(APIView):
                 "event_status": booking.event_status,
                 "confirmation_code": code,
                 "organizationId": booking.cafe.organization_id,
-                "organizationName": booking.cafe.name
+                "organizationName": booking.cafe.name,
+                "prepayment": booking.prepayment,
+                "number_of_people": booking.number_of_people,
+                "price_per_visitor": booking.price_per_visitor
             }
 
             try:
